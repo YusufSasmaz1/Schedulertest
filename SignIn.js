@@ -11,7 +11,7 @@ form.addEventListener('submit', function (event){
     let email = document.getElementById("email").value;
     let password = document.getElementById("password").value;
 
-    window.location.href = "http://127.0.0.1:5500/Scheduler-Inc.-main/MonthCalendar.html";
+    window.location.href = "http://127.0.0.1:5500/MonthCalendar.html";
 
 })
 

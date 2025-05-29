@@ -157,12 +157,38 @@ function renderCalendar() {
       }
 
       .month-calendar__day-label--hoverable {
-        transition: background-color 0.2s ease;
+        transition: all 0.3s ease;
+        border-radius: 50%;
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto;
       }
 
       .month-calendar__day-label--hoverable:hover {
         background-color: #f0f0f0;
         cursor: pointer;
+      }
+
+      .today-highlight {
+        background-color: #808080;
+        color: white;
+        font-weight: bold;
+        border-radius: 50%;
+        animation: todayHighlight 0.3s ease forwards;
+      }
+
+      @keyframes todayHighlight {
+        0% {
+          background-color: transparent;
+          color: black;
+        }
+        100% {
+          background-color: #808080;
+          color: white;
+        }
       }
 
       .month-calendar__event-list-wrapper {
