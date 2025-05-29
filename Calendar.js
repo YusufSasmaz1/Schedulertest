@@ -28,6 +28,65 @@ const rightArrow = document.querySelectorAll('.nav__arrows button')[1];
 const calendarDayList = document.querySelector('.month-calendar__day-list');
 const todayButton = document.querySelector('.nav__controls .button--secondary');
 
+// Add view state tracking
+let currentView = 'month'; // can be 'month', 'week', or 'day'
+let selectedDate = new Date();
+
+// Add view switching function
+function switchView(newView, date) {
+  currentView = newView;
+  selectedDate = date;
+  
+  // Hide all views first
+  document.querySelector('.month-calendar').style.display = 'none';
+  document.querySelector('[data-week-calendar]').style.display = 'none';
+  document.querySelector('[data-day-calendar]').style.display = 'none';
+
+  // Show selected view
+  if (newView === 'month') {
+    document.querySelector('.month-calendar').style.display = '';
+  } else if (newView === 'week') {
+    document.querySelector('[data-week-calendar]').style.display = '';
+  } else if (newView === 'day') {
+    document.querySelector('[data-day-calendar]').style.display = '';
+    // Update day view header
+    updateDayView();
+  }
+
+  // Sync the view selector dropdown
+  const viewSelect = document.querySelector('[data-view-select]');
+  if (viewSelect) {
+    viewSelect.value = newView;
+  }
+
+  // Update nav date display
+  updateNavDate();
+}
+
+// Add function to update day view
+function updateDayView() {
+  const dayHeader = document.querySelector('[data-day-calendar] .week-calendar__day-of-week-button');
+  if (dayHeader) {
+    const dayOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][selectedDate.getDay()];
+    const dayNum = selectedDate.getDate();
+    
+    const dayText = dayHeader.querySelector('.week-calendar__day-of-week-day');
+    const dayNumber = dayHeader.querySelector('.week-calendar__day-of-week-num');
+    
+    if (dayText) dayText.textContent = dayOfWeek;
+    if (dayNumber) dayNumber.textContent = dayNum;
+  }
+}
+
+function updateNavDate() {
+  if (currentView === 'month') {
+    navDateElement.textContent = `${getMonthName(currentDate.getMonth())} ${currentDate.getFullYear()}`;
+  } else if (currentView === 'week') {
+    // Add week view date logic if needed
+  } else if (currentView === 'day') {
+    navDateElement.textContent = `${getMonthName(selectedDate.getMonth())} ${selectedDate.getDate()}, ${selectedDate.getFullYear()}`;
+  }
+}
 
 function renderCalendar() {
 
@@ -78,9 +137,56 @@ function renderCalendar() {
   for (let day = 1; day <= daysInMonth; day++) {
     const li = document.createElement('li');
     li.classList.add('month-calendar__day');
+    
+    // Add hover effect for the entire cell
+    li.classList.add('month-calendar__day--hoverable');
+    
     const btn = document.createElement('button');
     btn.className = 'month-calendar__day-label';
+    // Add specific hover effect for the date number
+    btn.classList.add('month-calendar__day-label--hoverable');
     btn.textContent = day;
+
+    // Add styles to document head for hover effects and event positioning
+    const styleSheet = document.createElement("style");
+    styleSheet.textContent = `
+      .month-calendar__day--hoverable:hover {
+        background-color: rgba(242, 242, 242, 0.8);
+        cursor: pointer;
+        transition: background-color 0.2s ease;
+      }
+
+      .month-calendar__day-label--hoverable {
+        transition: background-color 0.2s ease;
+      }
+
+      .month-calendar__day-label--hoverable:hover {
+        background-color: #f0f0f0;
+        cursor: pointer;
+      }
+
+      .month-calendar__event-list-wrapper {
+        margin-top: 5px;
+        padding: 0 5px;
+      }
+
+      .event-list {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .event-item {
+        margin: 2px 0;
+        padding: 3px 6px;
+        border-radius: 4px;
+        font-size: 0.85em;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+    `;
+    document.head.appendChild(styleSheet);
 
     // Highlight today if on current month/year and flag is set
     if (
@@ -92,25 +198,32 @@ function renderCalendar() {
       btn.classList.add('today-highlight');
     }
 
-    btn.addEventListener('click', () => {
-    // Set modal date input value
-    date.value = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation(); // Prevent event from bubbling to li
+      const clickedDate = new Date(year, month, day);
+      switchView('day', clickedDate);
+    });
 
-    // Reset other modal inputs & states
-    titleInput.value = '';
-    time1.value = '';
-    time2.value = '';
-    repeatDateInput.value = '';
-    errorMessage.style.display = 'none';
-    toggleAllDay();
-    toggleRepeat();
+    // Add click handler to the li element (day cell)
+    li.addEventListener('click', () => {
+      // Set modal date input value
+      date.value = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 
-    // Set default event type
-    typeEvent = 'event';
+      // Reset other modal inputs & states
+      titleInput.value = '';
+      time1.value = '';
+      time2.value = '';
+      repeatDateInput.value = '';
+      errorMessage.style.display = 'none';
+      toggleAllDay();
+      toggleRepeat();
 
-    // Show modal
-    modal.style.display = 'block';
-  });
+      // Set default event type
+      typeEvent = 'event';
+
+      // Show modal
+      modal.style.display = 'block';
+    });
 
     li.appendChild(btn);
 
@@ -124,12 +237,27 @@ function renderCalendar() {
     // Add events for this day
     const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     const todaysEvents = allEvents.filter(e => e.selectedDate === dateStr);
+    
+    // Sort events by time
+    todaysEvents.sort((a, b) => {
+      if (a.isAllDay && !b.isAllDay) return -1;
+      if (!a.isAllDay && b.isAllDay) return 1;
+      if (a.isAllDay && b.isAllDay) return 0;
+      return a.time1Value.localeCompare(b.time1Value);
+    });
+
     todaysEvents.forEach(ev => {
       const eventItem = document.createElement("li");
       eventItem.classList.add("event-item");
+      
+      // Add event type class for different colors
+      eventItem.classList.add(`event-item--${ev.typeEvent}`);
+      
+      // Just show the title without time
       eventItem.textContent = ev.title;
 
-      eventItem.addEventListener("click", () => {
+      eventItem.addEventListener("click", (e) => {
+        e.stopPropagation();
         alert(`Title: ${ev.title}
 Date: ${ev.selectedDate}
 ${ev.isAllDay ? "All Day" : `Time: ${ev.time1Value} to ${ev.time2Value}`}
@@ -166,27 +294,44 @@ Type: ${ev.typeEvent}`);
   }
 }
 
-// Calendar navigation
+// Update navigation arrows to work with daily view
 leftArrow.addEventListener('click', () => {
-  currentDate.setMonth(currentDate.getMonth() - 1);
-  todayHighlightFlag = false; // Remove highlight on scroll
-  renderCalendar();
+  if (currentView === 'month') {
+    currentDate.setMonth(currentDate.getMonth() - 1);
+    todayHighlightFlag = false;
+    renderCalendar();
+  } else if (currentView === 'day') {
+    selectedDate.setDate(selectedDate.getDate() - 1);
+    updateDayView();
+    updateNavDate();
+  }
 });
+
 rightArrow.addEventListener('click', () => {
-  currentDate.setMonth(currentDate.getMonth() + 1);
-  todayHighlightFlag = false; // Remove highlight on scroll
-  renderCalendar();
+  if (currentView === 'month') {
+    currentDate.setMonth(currentDate.getMonth() + 1);
+    todayHighlightFlag = false;
+    renderCalendar();
+  } else if (currentView === 'day') {
+    selectedDate.setDate(selectedDate.getDate() + 1);
+    updateDayView();
+    updateNavDate();
+  }
 });
+
 if (todayButton) {
   todayButton.addEventListener('click', () => {
     currentDate = new Date();
-    todayHighlightFlag = true; // Set flag for highlight
+    selectedDate = new Date();
+    todayHighlightFlag = true;
+    switchView(currentView, currentDate);
     renderCalendar();
   });
 }
 document.addEventListener('DOMContentLoaded', () => {
   todayHighlightFlag = false;
   renderCalendar();
+  switchView('month', currentDate);
 });
 
 
@@ -294,12 +439,40 @@ submit.onclick = () => {
       errorMessage.style.display = "block";
       return;
     }
-  }
 
-  // Store event in memory
-  allEvents.push({
-    title, selectedDate, time1Value, time2Value, isAllDay, isRepeat, repeatDate, typeEvent
-  });
+    // Create repeating events for each day in the range
+    const startDate = new Date(selectedDate);
+    const endDate = new Date(repeatDate);
+    const currentDate = new Date(startDate);
+
+    while (currentDate <= endDate) {
+      const eventDate = currentDate.toISOString().split('T')[0];
+      allEvents.push({
+        title,
+        selectedDate: eventDate,
+        time1Value,
+        time2Value,
+        isAllDay,
+        isRepeat,
+        repeatDate,
+        typeEvent
+      });
+      // Move to next day
+      currentDate.setDate(currentDate.getDate() + 1);
+    }
+  } else {
+    // Store single event
+    allEvents.push({
+      title,
+      selectedDate,
+      time1Value,
+      time2Value,
+      isAllDay,
+      isRepeat,
+      repeatDate,
+      typeEvent
+    });
+  }
 
   document.querySelectorAll('input').forEach(input => input.value = ''); // Clear input fields
   errorMessage.style.display = "none";
@@ -378,3 +551,17 @@ function resetModalInputs() {
   toggleAllDay();
   toggleRepeat();
 }
+
+// Add view select handler
+const viewSelect = document.querySelector('[data-view-select]');
+if (viewSelect) {
+  viewSelect.addEventListener('change', (e) => {
+    switchView(e.target.value, selectedDate);
+    if (e.target.value === 'month') {
+      renderCalendar(); // Re-render the month view when switching back
+    }
+  });
+}
+
+
+

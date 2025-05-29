@@ -72,3 +72,32 @@
   flex-grow: 1;
   padding-bottom: 1.5rem;
 }
+
+/* Add hover effect for the clickable area */
+.month-calendar__day:hover {
+  background-color: var(--color-gray-100);
+}
+
+/* Keep the date button visible on hover */
+.month-calendar__day:hover .month-calendar__day-label {
+  background-color: transparent;
+}
+
+.month-calendar__day--inactive {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* Remove hover effect for inactive days */
+.month-calendar__day--inactive:hover {
+  background-color: var(--color-white);
+  cursor: default;
+}
+
+.month-calendar__day-label:hover {
+  background-color: var(--color-gray-300);
+}
+
+.event-list {
+  list-style: none;
+}
